@@ -1,8 +1,8 @@
 binance:
   api:
     base-url: https://testnet.binance.vision
-    key: ${BINANCE_API_KEY:RuJ9reU2dCDGHmRxHKaRVmq2v8oTHPMJKpOXBdVpra1dLeWFCPFHvmeF16BBRjkP}
-    secret: ${BINANCE_API_SECRET:0gE9DNeCu2et6Qi5MOdZgDuIzmjMbnmIw4uOJQ44toZnkvrDNQkCY1BkJiQnmHbS}
+    key: ${BINANCE_API_KEY}
+    secret: ${BINANCE_API_SECRET}
   wss:
     base-url: wss://testnet.binance.vision/ws/
 
