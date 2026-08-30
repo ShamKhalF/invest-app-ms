@@ -1,0 +1,78 @@
+
+
+Mövcud kodunuzda və ümumi sistem arxitekturasında ediləcək məntiq dəyişiklikləri mərkəzləşdirilmiş idarəetmədən paylanmış (distributed) vəziyyətsiz (stateless) modelə keçidi təmin edir. Dəyişikliklərin dəqiq bölgüsü aşağıdakı kimidir.
+
+### Ümumi Məntiq Dəyişikliyi
+
+Əsas dəyişiklik sorğuların təhlükəsizlik süzgəcindən keçmə ardıcıllığındadır. Auth Service artıq digər xidmətlərə gələn sorğuları yoxlamaq üçün istifadə edilmir. Proses API Gateway tərəfindən qarşılanır, təsdiqlənir, icazələr hesablanır və yekun qərar domen servisin özündə verilir.
+
+---
+
+### 1. Auth Service-də Qalan və Silinən Məntiqlər
+
+Mövcud kod bazanızda ixtisarlar və modifikasiyalar edilməlidir.
+
+**Qalan məntiqlər (Yalnız İdentifikasiya Mərkəzi):**
+
+* **İdarəetmə:** `UserController`, `RoleController`, `PermissionController` və onlara aid verilənlər bazası əməliyyatları.
+* **Token Generasiyası:** JWT yaradılması (Login, Register, Refresh). Token payload-unda yalnız `username`, `role` və `token_version` saxlanılır.
+* **Sessiya Təhlükəsizliyi:** Logout zamanı tokenin Redis Blacklist-inə salınması və `token_version` idarəetməsi.
+* **Audit:** `LoginAttemptService` vasitəsilə giriş cəhdlərinin qeydiyyatı.
+
+**Silinən məntiqlər:**
+
+* `AuthTokenFilter`: Digər servislərin API-lərinə gələn tokenləri yoxlamaq məntiqi buradan tamamilə çıxarılır.
+* `RateLimitingInterceptor` və `RateLimitingConfig`: Limitləmə mərkəzi girişdə olmalıdır, Auth daxilində deyil.
+* Bütün sorğular üçün Redis-ə hər dəfə müraciət edib icazə (permission) çəkmək məntiqi ləğv edilir.
+
+---
+
+### 2. API Gateway-də Olacaq Məntiqlər
+
+API Gateway sistemin əsas mühafizə zolağı (edge layer) kimi konfiqurasiya edilir.
+
+* **Rate Limiting:** Auth servisdən silinən `Bucket4j` və ya Spring Cloud Gateway-in daxili Redis Rate Limiter məntiqi bura əlavə edilir.
+* **Token Validasiyası:** Sorğudakı JWT-nin imzasının (`RSAPublicKey` ilə) və müddətinin bitib-bitməməsinin yoxlanılması.
+* **Təhlükəsizlik Yoxlanışı (Redis):** Tokenin Blacklist-də olub-olmaması və `token_version`-un aktual olması yalnız burada Redis-dən yoxlanılır.
+* **İcazələrin Kəşlənməsi (In-Memory Cache):** Mövcud rollar və onlara aid icazələr Gateway-in yaddaşında (məs. Caffeine) saxlanılır.
+* **Kontekstin Birləşdirilməsi və Ötürülməsi:** Token etibarlıdırsa, daxilindəki rollara uyğun icazələr kəşdən tapılır. Nəticə HTTP Header-lərə (`X-User-Id`, `X-User-Permissions`) mətn formatında yazılaraq daxili şəbəkəyə (məsələn, Wallet-ə) ötürülür.
+
+---
+
+### 3. Domen Servislərdə və Ortaq Kitabxanada (Common Security) Olacaq Məntiqlər
+
+`wallet-service` kimi domenlər şəbəkə yükündən və token analizindən tamamilə azad edilir.
+
+* **Gateway Header Oxunması:** Yeni yaradılacaq (və ya `common-security` kitabxanasından gələn) filter/interceptor vasitəsilə sadəcə `X-User-Permissions` header-i oxunur.
+* **Lokal Səlahiyyət Yoxlaması:** Header-dən oxunan icazələr metodun üzərindəki tələblə (`@PreAuthorize("hasAuthority('...')")` və ya `@RequirePermission`) obyektiv şəkildə müqayisə edilir.
+* **İzolyasiya:** Bu servislərin daxilində token parse edilmir, Redis-ə gedilmir, User/Role cədvəllərinə müraciət olunmur. Şəbəkə sorğusu olmadan qərar qəbul edilir.
+
+---------------------------------
+
+Bu məntiqləri iki ayrı kitabxana (məsələn, `common-core` və `common-security`) kimi yaratmaq optimal arxitekturadır. Hər ikisini tək bir `common-lib` daxilində birləşdirmək asılılıqların (dependencies) izolyasiyası prinsipini pozacaq və konfiqurasiya toqquşmalarına səbəb olacaq.
+
+Səbəblər və struktur aşağıdakı kimidir:
+
+### 1. Niyə Tək Kitabxana (Mono-Lib) Olmamalıdır?
+
+Sizin `auth-service` xidmətinin ortaq xəta idarəetməsinə (`GlobalExceptionHandler`) ehtiyacı var, lakin API Gateway-dən gələn HTTP header-lərini oxuyan `GatewaySecurityFilter` və ona aid olan yüngül `SecurityConfig` məntiqinə ehtiyacı yoxdur. Əgər bunları bir kitabxanaya yığıb `auth-service`-ə əlavə etsəniz, Spring Boot-un Auto-Configuration xüsusiyyəti həmin filteri avtomatik olaraq `auth-service`-də də aktivləşdirəcək. Bu, həmin servisin öz mürəkkəb təhlükəsizlik konfiqurasiyası ilə toqquşacaq (conflict) və sistemin işini pozacaq.
+
+### 2. Təklif Edilən Bölgü (İki Ayrı Kitabxana)
+
+**Modul 1: `common-core` (və ya `common-exception`)**
+
+* **Məzmun:** `GlobalExceptionHandler`, `CustomException`, `ErrorCode` enum-ları, `ErrorDetails` obyekti və mesajların oxunması üçün `ResponseMessageService`.
+* **Asılılıqlar:** Yalnız `spring-boot-starter-web` (Burada qətiyyən Spring Security asılılığı olmamalıdır).
+* **İstifadə:** Bütün mikropservislər (o cümlədən `auth-service` və `wallet-service`) tərəfindən asılılıq kimi əlavə edilir.
+
+**Modul 2: `common-security**`
+
+* **Məzmun:** Yalnız domen servisləri üçün nəzərdə tutulmuş `GatewaySecurityFilter`, `SecurityConfig` və hər hansı custom icazə annotasiyası.
+* **Asılılıqlar:** `spring-boot-starter-security` və əlavə olaraq `common-core` modulu (əgər security filter daxilində təhlükəsizlik xətası baş verdikdə `CustomException` atılacaqsa). `build.gradle` daxilində `api 'az.shlf.investapp:common-core:1.0.0'` kimi əlavə edilə bilər.
+* **İstifadə:** Yalnız domen servisləri (məsələn, `wallet-service`) tərəfindən istifadə edilir. `auth-service` bu modulu **yükləmir**.
+
+Bu arxitektura mikropservis mühitində tək məsuliyyət (Single Responsibility) və minimum imtiyaz (Least Privilege) qaydalarına uyğundur. Hər bir servis yalnız faktiki ehtiyac duyduğu məntiqləri və kitabxanaları özünə daxil edir.
+
+---
+
+Bu modulları tək bir layihə qovluğunda (Gradle multi-project build), yoxsa müstəqil repozitoriyalar (ayrı Git repoları) kimi idarə etməyi planlaşdırırsınız?

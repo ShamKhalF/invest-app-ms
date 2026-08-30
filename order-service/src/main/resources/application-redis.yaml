@@ -1,0 +1,15 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cache:
+    type: redis
+
+app:
+  redis:
+    enabled: true
+  security:
+    trusted-proxies:
+      - 127.0.0.1
+      - ::1

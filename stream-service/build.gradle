@@ -1,0 +1,51 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.0.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'az.shlf'
+version = '0.0.1-SNAPSHOT'
+description = 'stream-service'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // 1. Əsas Web və JSON yoxlamaları
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // 2. Canlı STOMP WebSocket üçün (Müştərilərlə əlaqə)
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // 3. Market Data MS-dən gələn sürətli Pub/Sub datalarını oxumaq üçün
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+//    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    // 4. Köməkçi Alət
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // 6. Swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
+
+    // 7. Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // 8. Testlər
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

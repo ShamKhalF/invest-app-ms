@@ -1,0 +1,17 @@
+server:
+  port: ${ORDER_SERVER_PORT:8073}
+
+spring:
+  profiles:
+    include:
+      - db
+      - redis
+      - kafka
+      - binance
+
+
+grpc:
+  client:
+    wallet-service:
+      address: ${GRPC_CLIENT_WALLET_SERVICE_ADDRESS:static://localhost:7070}
+      negotiation-type: plaintext

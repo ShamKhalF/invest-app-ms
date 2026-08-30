@@ -1,0 +1,18 @@
+
+
+evvel common-lib modulunda olan build.gradle faylini oradaki kimi edib lazzim olan diger dependency-leri elave edirik.
+
+common-lib modulunda aşağıdakı yolu və faylı yaratdım:
+Yol: src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+
+sonra cd heminModule ile gedib asagidaki command-i isledirem
+./gradlew publishToMavenLocal
+
+sonra istifade eden modul-da asagidakilari elave edirem
+repositories {
+    mavenLocal() //bu
+	mavenCentral()
+}
+ve     implementation 'az.shlf:common-lib:0.0.1-SNAPSHOT'
+elave edirem. bizim lib olan ad ile uygun elave edirem.
+

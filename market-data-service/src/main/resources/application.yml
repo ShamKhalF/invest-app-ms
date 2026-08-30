@@ -1,0 +1,19 @@
+server:
+  port: ${MARKET_DATA_SERVER_PORT:8074}
+
+spring:
+  profiles:
+    include:
+      - binance
+      - redis
+      - db
+      - kafka
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000  # Binance-ə qoşulmaq üçün 5 saniyə vaxt ver
+            readTimeout: 15000    # Binance-dən gələn datanı oxumaq üçün 15 saniyə vaxt ver
+

@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package wallet;
+option java_package = "az.shlf.walletservice.grpc";
+option java_multiple_files = true;
+
+service WalletGrpcService {
+  rpc ReserveBalance(ReserveBalanceRequest) returns (BalanceResponse);
+  rpc ReleaseBalance(ReleaseBalanceRequest) returns (BalanceResponse);
+  rpc CommitBalance(CommitBalanceRequest) returns (BalanceResponse);
+}
+
+message ReserveBalanceRequest {
+  string username = 1;
+  string asset = 2;
+  string amount = 3;
+  string order_id = 4;
+}
+
+message ReleaseBalanceRequest {
+  string username = 1;
+  string asset = 2;
+  string amount = 3;
+  string order_id = 4;
+}
+
+message CommitBalanceRequest {
+  string username = 1;
+  string sold_asset = 2;
+  string sold_amount = 3;
+  string bought_asset = 4;
+  string bought_amount = 5;
+  string order_id = 6;
+}
+
+message BalanceResponse {
+  bool success = 1;
+  string message = 2;
+}

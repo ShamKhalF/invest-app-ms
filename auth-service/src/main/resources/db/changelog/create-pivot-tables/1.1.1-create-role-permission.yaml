@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.1.1 create-role-permission-table
+      author: ShLF
+      changes:
+        - createTable:
+            tableName: role_permission
+            columns:
+              - column:
+                  name: role_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: permission_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: role_permission
+            columnNames: role_id, permission_id
+            constraintName: pk_role_permission

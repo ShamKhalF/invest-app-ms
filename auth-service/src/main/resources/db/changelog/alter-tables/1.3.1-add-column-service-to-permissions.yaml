@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.3.1 add-column-service-to-permissions
+      author: ShLF
+      changes:
+        - addColumn:
+            tableName: permissions
+            columns:
+              - column:
+                  name: service
+                  type: varchar(255)

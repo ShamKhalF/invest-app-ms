@@ -1,0 +1,11 @@
+server:
+  port: ${AUTH_SERVER_PORT:8071}
+
+spring:
+  profiles:
+    include:
+      - db
+      - sec
+      - redis
+      - kafka
+

@@ -1,0 +1,13 @@
+server:
+  port: ${TELEGRAM_AI_BOT_PORT:8076}
+
+spring:
+  application:
+    name: telegram-ai-bot
+
+  profiles:
+    include:
+      - db
+#      - kafka
+      - aibot
+      - redis

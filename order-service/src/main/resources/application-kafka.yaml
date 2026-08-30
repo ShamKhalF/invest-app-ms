@@ -1,0 +1,30 @@
+spring:
+  kafka:
+#    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092,localhost:29094,localhost:29096}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        spring.json.add.type.headers: false
+        enable.idempotence: true
+        linger.ms: 5
+        batch.size: 16384
+        max.in.flight.requests.per.connection: 5
+        delivery.timeout.ms: 120000
+    admin:
+      auto-create: true
+
+app:
+  kafka:
+    topics:
+      symbol:
+        name: symbol-watch-topic
+        partitions: 3
+        replicas: 3
+  security:
+    mail-token: "mail-sender-token"
+
+

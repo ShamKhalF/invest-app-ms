@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <title>InvestApp Canlı Test (Yenilənmiş)</title>
+    <!-- STOMP protokolu üçün kitabxana -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #1e1e1e; color: #fff; }
+        .control-panel { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #444; }
+        input, select, button { padding: 10px 15px; margin-right: 10px; font-size: 14px; border-radius: 4px; border: 1px solid #555; outline: none; }
+        input, select { background: #fff; color: #000; font-weight: bold; }
+        button.connect { background: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button.connect:hover { background: #218838; }
+        button.connect:disabled { background: #555; cursor: not-allowed; }
+        button.disconnect { background: #dc3545; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button.disconnect:hover { background: #c82333; }
+        button.disconnect:disabled { background: #555; cursor: not-allowed; }
+        button.clear { background: #6c757d; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button.clear:hover { background: #5a6268; }
+        #log { background: #000; padding: 15px; height: 450px; overflow-y: scroll; font-family: monospace; color: #0f0; border: 1px solid #444; border-radius: 5px; line-height: 1.5; }
+        .highlight { color: #ffeb3b; }
+    </style>
+</head>
+<body>
+
+<h2>Market Data Canlı Axın Testi 🚀</h2>
+
+<div class="control-panel">
+    <label>Kanal:</label>
+    <select id="streamType">
+        <option value="depth">Depth (Dərinlik / Order Book)</option>
+        <option value="ticker">Ticker (24s Statistika)</option>
+        <option value="kline">Kline (Şamlar)</option>
+    </select>
+
+    <label style="margin-left: 15px;">Koin (Symbol):</label>
+    <input type="text" id="symbol" value="btcusdt" placeholder="məs: ethusdt">
+
+    <button id="btnConnect" class="connect" onclick="connect()">Bağlan və İzlə</button>
+    <button id="btnDisconnect" class="disconnect" onclick="disconnect()" disabled>Əlaqəni Kəs</button>
+    <button class="clear" onclick="clearLog()">Ekranı Təmizlə</button>
+</div>
+
+<div id="log">Sistem hazırdır. Bağlanmaq üçün yuxarıdan seçim edib düyməyə basın...<br><br></div>
+
+<script>
+    var stompClient = null;
+    var currentSubscription = null; // Otağı yadda saxlamaq üçün
+
+    function connect() {
+        var streamType = document.getElementById('streamType').value;
+        var symbol = document.getElementById('symbol').value.toLowerCase().trim();
+
+        if (!symbol) {
+            alert("Zəhmət olmasa koin adını (məs: btcusdt) yazın!");
+            return;
+        }
+
+        // 1. Qoruma: Qoşulma başlayan kimi "Bağlan" düyməsini söndürürük
+        document.getElementById("btnConnect").disabled = true;
+
+        var destination = '/topic/' + streamType + '/' + symbol;
+        var currentPort = window.location.port; // Məsələn: 8075
+        var wsUrl = 'ws://localhost:' + currentPort + '/ws-stream/websocket';
+        var socket = new WebSocket(wsUrl);
+
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null;
+
+        printLog("🔄 Serverə qoşulmağa cəhd edilir... (" + wsUrl + ")");
+
+        stompClient.connect({}, function (frame) {
+            // 2. Qoruma: Qoşulduqdan sonra "Kəs" düyməsini aktivləşdiririk
+            document.getElementById("btnDisconnect").disabled = false;
+
+            printLog("✅ <span class='highlight'>Serverə uğurla qoşulduq!</span>");
+            printLog("⏳ '" + destination + "' otağına abunə olunur...");
+
+            currentSubscription = stompClient.subscribe(destination, function (message) {
+                printLog("⬇️ <b>" + symbol.toUpperCase() + "</b>: " + message.body);
+            });
+        }, function(error) {
+            // Əgər xəta olarsa, düyməni yenidən aktiv edirik ki, təzədən cəhd edə bilsin
+            document.getElementById("btnConnect").disabled = false;
+            printLog("<span style='color: #ff4d4d;'>❌ Qoşulma xətası: " + error + "</span>");
+        });
+    }
+
+    function disconnect() {
+        // Əvvəlcə otaqdan (topic) səliqəli şəkildə çıxırıq
+        if (currentSubscription !== null) {
+            currentSubscription.unsubscribe();
+        }
+
+        // Sonra serverlə ümumi əlaqəni kəsirik
+        if (stompClient !== null) {
+            stompClient.disconnect(function() {
+                printLog("❌ <span style='color: #ff4d4d;'>Əlaqə kəsildi. Otaqdan çıxıldı.</span>");
+
+                // 3. Qoruma: Düymələri əvvəlki halına (başlanğıc vəziyyətə) qaytarırıq
+                document.getElementById("btnConnect").disabled = false;
+                document.getElementById("btnDisconnect").disabled = true;
+            });
+        }
+    }
+
+    function clearLog() {
+        document.getElementById('log').innerHTML = "Sistem hazırdır. Bağlanmaq üçün yuxarıdan seçim edib düyməyə basın...<br><br>";
+    }
+
+    function printLog(message) {
+        var logDiv = document.getElementById('log');
+        logDiv.innerHTML += message + "<br>";
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:invest_db}
+    username: ${DB_USER:invest_user}
+    password: ${DB_PASSWORD:invest_password}
+    driver-class-name: org.postgresql.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      pool-name: InvestAppHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      keepalive-time: 60000
+      auto-commit: true
+      connection-test-query: select 1
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: false
+    open-in-view: false
+    show-sql: true
+  sql:
+    init:
+      mode: always
+#  liquibase:
+#    enabled: true
+#    change-log: classpath:db/changelog/db.changelog-master.yaml
+#    default-schema: public
+

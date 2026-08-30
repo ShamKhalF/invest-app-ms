@@ -1,0 +1,8 @@
+server:
+  port: ${STREAM_SERVER_PORT:8075}
+
+spring:
+  profiles:
+    include:
+      - redis
+      - kafka

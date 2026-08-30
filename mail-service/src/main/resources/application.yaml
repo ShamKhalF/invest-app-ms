@@ -1,0 +1,33 @@
+server:
+  port: ${MAIL_SERVER_PORT:8079}
+
+
+spring:
+
+  profiles:
+    active:
+      - kafka
+
+  application:
+    name: mail-service
+
+  mail:
+    host: smtp.gmail.com
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:samxalferzeliyev7@gmail.com}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+app:
+  kafka:
+    topics:
+      mail:
+        name: mail-topic
+  security:
+    mail-token: "mail-sender-token"

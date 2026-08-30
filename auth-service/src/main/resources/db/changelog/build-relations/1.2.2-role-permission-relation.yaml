@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.2.2 build-relation-role-permission
+      author: ShLF
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: role_permission
+            baseColumnNames: role_id
+            constraintName: fk_role_permission_role
+            referencedTableName: roles
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: role_permission
+            baseColumnNames: permission_id
+            constraintName: fk_role_permission_permission
+            referencedTableName: permissions
+            referencedColumnNames: id
+            onDelete: CASCADE

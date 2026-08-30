@@ -1,0 +1,376 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: pgvector/pgvector:pg16
+    container_name: invest_app_postgres
+    restart: always
+    command: [ "postgres", "-c", "wal_level=logical" ]
+    environment:
+      POSTGRES_USER: invest_user
+      POSTGRES_PASSWORD: invest_password
+      POSTGRES_DB: invest_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Vektor genişlənməsi üçün
+
+  redis:
+    image: redis:7-alpine
+    container_name: invest_app_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  kafka-1:
+    image: apache/kafka:3.9.0
+    container_name: kafka-1
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: 97exVv29T2icAhT2SNEEDQ
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9091,2@kafka-2:9091,3@kafka-3:9091
+      KAFKA_LISTENERS: PLAINTEXT://:9090,CONTROLLER://:9091,EXTERNAL://:9092,EXTERNAL_CLIENT://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9090,EXTERNAL://kafka-1:9092,EXTERNAL_CLIENT://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL_CLIENT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9090", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - ./volumes/kafka/server-1:/var/lib/kafka/data
+
+  kafka-2:
+    image: apache/kafka:3.9.0
+    container_name: kafka-2
+    ports:
+      - "9094:9094"
+      - "29094:29094"
+    environment:
+      KAFKA_NODE_ID: 2
+      CLUSTER_ID: 97exVv29T2icAhT2SNEEDQ
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9091,2@kafka-2:9091,3@kafka-3:9091
+      KAFKA_LISTENERS: PLAINTEXT://:9090,CONTROLLER://:9091,EXTERNAL://:9094,EXTERNAL_CLIENT://:29094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9090,EXTERNAL://kafka-2:9094,EXTERNAL_CLIENT://localhost:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL_CLIENT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9090", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - ./volumes/kafka/server-2:/var/lib/kafka/data
+
+  kafka-3:
+    image: apache/kafka:3.9.0
+    container_name: kafka-3
+    ports:
+      - "9096:9096"
+      - "29096:29096"
+    environment:
+      KAFKA_NODE_ID: 3
+      CLUSTER_ID: 97exVv29T2icAhT2SNEEDQ
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9091,2@kafka-2:9091,3@kafka-3:9091
+      KAFKA_LISTENERS: PLAINTEXT://:9090,CONTROLLER://:9091,EXTERNAL://:9096,EXTERNAL_CLIENT://:29096
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9090,EXTERNAL://kafka-3:9096,EXTERNAL_CLIENT://localhost:29096
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL_CLIENT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-topics.sh", "--bootstrap-server", "localhost:9090", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - ./volumes/kafka/server-3:/var/lib/kafka/data
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    ports:
+      - "9999:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9090,kafka-2:9090,kafka-3:9090
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+
+
+  api-gateway:
+    image: shamxalf/invest-app-ms:gateway.1.0
+#    image: api-gateway:1.0
+#    build:
+#      context: ./api-gateway
+#      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8070:8070"
+    environment:
+      GATEWAY_SERVER_PORT: 8070
+      AUTH_SERVICE_URI: http://auth-service:8071
+      MAIL_SERVICE_URI: http://mail-service:8079
+      WALLET_SERVICE_URI: http://wallet-service:8072
+      ORDER_SERVICE_URI: http://order-service:8073
+      MARKET_DATA_SERVICE_URI: http://market-data-service:8074
+      STREAM_SERVICE_URI: http://stream-service:8075
+      STREAM_SERVICE_WS_URI: ws://stream-service:8075
+      TELEGRAM_AI_BOT_URI: http://telegram-ai-bot:8076
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      auth-service:
+        condition: service_started
+      mail-service:
+        condition: service_started
+      wallet-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      market-data-service:
+        condition: service_started
+      stream-service:
+        condition: service_started
+      redis:
+        condition: service_started
+
+  auth-service:
+    image: shamxalf/invest-app-ms:auth.1.0
+#    image: auth-service:1.0
+#    build:
+#      context: ./auth-service
+#      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8071:8071"
+    environment:
+      AUTH_SERVER_PORT: 8071
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_NAME: invest_db
+      DB_USER: invest_user
+      DB_PASSWORD: invest_password
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9094,kafka-3:9096
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres-db:
+        condition: service_started
+      redis:
+        condition: service_started
+      kafka-1:
+        condition: service_healthy
+
+  wallet-service:
+    image: shamxalf/invest-app-ms:wallet.1.0
+#    image: wallet-service:1.0
+#    build:
+#      context: ./wallet-service
+#      dockerfile: Dockerfile
+    container_name: wallet-service
+    ports:
+      - "8072:8072"
+      - "7070:7070" # gRPC port
+    environment:
+      WALLET_SERVER_PORT: 8072
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_NAME: invest_db
+      DB_USER: invest_user
+      DB_PASSWORD: invest_password
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9094,kafka-3:9096
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres-db:
+        condition: service_started
+      redis:
+        condition: service_started
+      kafka-1:
+        condition: service_healthy
+
+  order-service:
+    image: shamxalf/invest-app-ms:order.1.0
+#    image: order-service:1.0
+#    build:
+#      context: ./order-service
+#      dockerfile: Dockerfile
+#    container_name: order-service
+    ports:
+      - "8073:8073"
+    environment:
+      ORDER_SERVER_PORT: 8073
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_NAME: invest_db
+      DB_USER: invest_user
+      DB_PASSWORD: invest_password
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9094,kafka-3:9096
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GRPC_CLIENT_WALLET_SERVICE_ADDRESS: static://wallet-service:7070
+      BINANCE_API_KEY: ${BINANCE_API_KEY}
+      BINANCE_API_SECRET: ${BINANCE_API_SECRET}
+    depends_on:
+      postgres-db:
+        condition: service_started
+      redis:
+        condition: service_started
+      wallet-service:
+        condition: service_started
+      kafka-1:
+        condition: service_healthy
+
+  market-data-service:
+    image: shamxalf/invest-app-ms:market-data.1.0
+#    image: market-data-service:1.0
+#    build:
+#      context: ./market-data-service
+#      dockerfile: Dockerfile
+#    container_name: market-data-service
+    ports:
+      - "8074:8074"
+    environment:
+      MARKET_DATA_SERVER_PORT: 8074
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_NAME: invest_db
+      DB_USER: invest_user
+      DB_PASSWORD: invest_password
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9094,kafka-3:9096
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres-db:
+        condition: service_started
+      redis:
+        condition: service_started
+      kafka-1:
+        condition: service_healthy
+
+  stream-service:
+    image: shamxalf/invest-app-ms:stream.1.0
+#    image: stream-service:1.0
+#    build:
+#      context: ./stream-service
+#      dockerfile: Dockerfile
+#    container_name: stream-service
+    ports:
+      - "8075:8075"
+    environment:
+      STREAM_SERVER_PORT: 8075
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9094,kafka-3:9096
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      redis:
+        condition: service_started
+      kafka-1:
+        condition: service_healthy
+
+  mail-service:
+    image: shamxalf/invest-app-ms:mail.1.0
+#    image: mail-service:1.0
+#    build:
+#      context: ./mail-service
+#      dockerfile: Dockerfile
+#    container_name: mail-service
+    ports:
+      - "8079:8079"
+    environment:
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_SERVER_PORT: 8079
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9094,kafka-3:9096
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+
+
+# elave edilecek duzelisler ile
+  telegram-ai-bot:
+    image: shamxalf/invest-app-ms:telegram-ai-bot.1.0
+#    image: telegram-ai-bot:1.0
+#    build:
+#      context: ./telegram-ai-bot
+#      dockerfile: Dockerfile
+    container_name: telegram-ai-bot
+    ports:
+      - "8076:8076"
+    environment:
+      # Server port
+      TELEGRAM_AI_BOT_PORT: 8076
+      # Database
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_NAME: invest_db
+      DB_USER: invest_user
+      DB_PASSWORD: invest_password
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME}
+    depends_on:
+      postgres-db:
+        condition: service_started
+      redis:
+        condition: service_started
+      kafka-1:
+        condition: service_healthy
+#      minio:
+#        condition: service_started
+
+
+volumes:
+  postgres_data:
+  minio_data:
+
+
+#  docker tag api-gateway:1.0 shamxalf/invest-app-ms:gateway.1.0
+#  docker push shamxalf/invest-app-ms:gateway.1.0
+
+#  docker tag auth-service:1.0 shamxalf/invest-app-ms:auth.1.0
+#  docker push shamxalf/invest-app-ms:auth.1.0
+
+#  docker tag mail-service:1.0 shamxalf/invest-app-ms:mail.1.0
+#  docker push shamxalf/invest-app-ms:mail.1.0
+
+#  docker tag wallet-service:1.0 shamxalf/invest-app-ms:wallet.1.0
+#  docker push shamxalf/invest-app-ms:wallet.1.0
+
+#  docker tag order-service:1.0 shamxalf/invest-app-ms:order.1.0
+#  docker push shamxalf/invest-app-ms:order.1.0
+
+#  docker tag market-data-service:1.0 shamxalf/invest-app-ms:market-data.1.0
+#  docker push shamxalf/invest-app-ms:market-data.1.0
+
+#  docker tag stream-service:1.0 shamxalf/invest-app-ms:stream.1.0
+#  docker push shamxalf/invest-app-ms:stream.1.0
+
+#  docker tag telegram-ai-bot:1.0 shamxalf/invest-app-ms:telegram-ai-bot.1.0
+#  docker push shamxalf/invest-app-ms:telegram-ai-bot.1.0
+
+

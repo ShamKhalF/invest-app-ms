@@ -1,0 +1,36 @@
+spring:
+  # Spring AI (Google GenAI & pgvector)
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+#        project-id: "346452265221"
+        chat:
+          options:
+            model: gemini-3.5-flash
+            temperature: 0.2
+#        embedding:
+#          text:
+#            model: text-embedding-004
+
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 384
+        remove-existing-vector-store-table: false
+        initialize-schema: true
+
+
+
+# Telegram Bot
+telegrambots:
+  bot-token: ${TELEGRAM_BOT_TOKEN}
+  bot-username: ${TELEGRAM_BOT_USERNAME}
+
+## MinIO
+#minio:
+#  url: ${MINIO_URL:http://localhost:9000}
+#  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+#  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+#  bucket-name: voice-messages

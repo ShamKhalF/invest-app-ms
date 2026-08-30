@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - includeAll:
+      path: db/changelog/create-tables
+  - includeAll:
+      path: db/changelog/create-pivot-tables
+  - includeAll:
+      path: db/changelog/build-relations
+  - includeAll:
+      path: db/changelog/alter-tables
+  - includeAll:
+      path: db/changelog/insert-data
+  - includeAll:
+      path: db/changelog/insert-user

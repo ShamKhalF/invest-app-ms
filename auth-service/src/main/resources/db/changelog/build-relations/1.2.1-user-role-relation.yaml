@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.2.1 build-relation-user-role
+      author: ShLF
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: user_role
+            baseColumnNames: user_id
+            constraintName: fk_user_role_user
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: user_role
+            baseColumnNames: role_id
+            constraintName: fk_user_role_role
+            referencedTableName: roles
+            referencedColumnNames: id
+            onDelete: CASCADE

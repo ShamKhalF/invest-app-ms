@@ -1,0 +1,12 @@
+binance:
+  api:
+    base-url: https://api.binance.com
+  wss:
+#    base-url: wss://testnet.binance.vision   # 404 alib qosula bilmediyi ucun prod url-si ile davam etdim
+    base-url: wss://stream.binance.com:9443
+    single-path: /ws/%s@ticker
+    multi-path: /stream?streams=%s
+    kline-single-path: /ws/%s
+    kline-multi-path: /stream?streams=%s
+    depth-single-path: /ws/%s@depth20@100ms
+    depth-multi-path: /stream?streams=%s

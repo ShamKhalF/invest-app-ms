@@ -1,0 +1,169 @@
+server:
+  port: ${GATEWAY_SERVER_PORT:8070}
+
+spring:
+  profiles:
+    active:
+      - sec
+      - redis
+  application:
+    name: api-gateway
+  cloud:
+    discovery:
+      enabled: false
+    gateway:
+      routes:
+        # Auth Service
+        - id: auth-service-public
+          uri: ${AUTH_SERVICE_URI:http://localhost:8071}
+          predicates:
+            - Path=/auth/api/v1/auth/**, /auth/api/v1/users/register, /auth/api/v1/users/confirm-registration, /auth/api/v1/users/forgot-password, /auth/api/v1/users/forgot-password/confirm-otp, /auth/api/v1/users/reset-password
+          order: 0
+
+        - id: auth-service-secured
+          uri: ${AUTH_SERVICE_URI:http://localhost:8071}
+          predicates:
+            - Path=/auth/api/v1/users/**, /auth/api/v1/roles/**, /auth/api/v1/permissions/**
+          filters:
+            - AuthenticationFilter
+          order: 1
+
+        - id: auth-service-swagger
+          uri: ${AUTH_SERVICE_URI:http://localhost:8071}
+          predicates:
+            - Path=/auth/v3/api-docs
+          filters:
+            - RewritePath=/auth/(?<segment>.*), /$\{segment}
+          order: 2
+
+        # Mail Service
+        - id: mail-service-api
+          uri: ${MAIL_SERVICE_URI:http://localhost:8079}
+          predicates:
+            - Path=/api/mail/**
+          order: 3
+
+        - id: mail-service-swagger
+          uri: ${MAIL_SERVICE_URI:http://localhost:8079}
+          predicates:
+            - Path=/mail/v3/api-docs
+          filters:
+            - RewritePath=/mail/(?<segment>.*), /$\{segment}
+          order: 4
+
+        # Wallet Service
+        - id: wallet-service-secured
+          uri: ${WALLET_SERVICE_URI:http://localhost:8072}
+          predicates:
+            - Path=/api/v1/wallets/**
+          filters:
+            - AuthenticationFilter
+          order: 5
+
+        - id: wallet-service-swagger
+          uri: ${WALLET_SERVICE_URI:http://localhost:8072}
+          predicates:
+            - Path=/wallet/v3/api-docs
+          filters:
+            - RewritePath=/wallet/(?<segment>.*), /$\{segment}
+          order: 6
+
+        # Order Service
+        - id: order-service-secured
+          uri: ${ORDER_SERVICE_URI:http://localhost:8073}
+          predicates:
+            - Path=/api/v1/orders/**
+          filters:
+            - AuthenticationFilter
+          order: 7
+
+        - id: order-service-swagger
+          uri: ${ORDER_SERVICE_URI:http://localhost:8073}
+          predicates:
+            - Path=/order/v3/api-docs
+          filters:
+            - RewritePath=/order/(?<segment>.*), /$\{segment}
+          order: 8
+
+        # Market Data Service
+        - id: market-data-service-public
+          uri: ${MARKET_DATA_SERVICE_URI:http://localhost:8074}
+          predicates:
+            - Path=/api/v1/analytics/**, /api/v1/market/**
+          order: 9
+
+        - id: market-data-service-secured
+          uri: ${MARKET_DATA_SERVICE_URI:http://localhost:8074}
+          predicates:
+            - Path=/api/v1/admin/stream/**
+          filters:
+            - AuthenticationFilter
+          order: 10
+
+        - id: market-data-service-swagger
+          uri: ${MARKET_DATA_SERVICE_URI:http://localhost:8074}
+          predicates:
+            - Path=/market-data/v3/api-docs
+          filters:
+            - RewritePath=/market-data/(?<segment>.*), /$\{segment}
+          order: 11
+
+        # Stream Service (UI and Swagger)
+        - id: stream-service-public
+          uri: ${STREAM_SERVICE_URI:http://localhost:8075}
+          predicates:
+            - Path=/stream/ws-ui/**
+          filters:
+            - RewritePath=/stream/(?<segment>.*), /$\{segment}
+          order: 12
+
+        - id: stream-service-swagger
+          uri: ${STREAM_SERVICE_URI:http://localhost:8075}
+          predicates:
+            - Path=/stream/v3/api-docs
+          filters:
+            - RewritePath=/stream/(?<segment>.*), /$\{segment}
+          order: 13
+
+        # Stream Service (WebSocket bağlantısı)
+        - id: stream-service-websocket
+          uri: ${STREAM_SERVICE_WS_URI:ws://localhost:8075}
+          predicates:
+            - Path=/ws-stream/**
+          order: 14
+
+        - id: telegram-ai-bot-secured
+          uri: ${TELEGRAM_AI_BOT_URI:http://localhost:8076}
+          predicates:
+            - Path=/api/v1/telegram/bot/**
+          filters:
+            - AuthenticationFilter
+          order: 15
+
+        - id: telegram-ai-bot-swagger
+          uri: ${TELEGRAM_AI_BOT_URI:http://localhost:8076}
+          predicates:
+            - Path=/telegram-ai-bot/v3/api-docs
+          filters:
+            - RewritePath=/telegram-ai-bot/(?<segment>.*), /$\{segment}
+          order: 16
+
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: auth-service
+        url: /auth/v3/api-docs
+      - name: mail-service
+        url: /mail/v3/api-docs
+      - name: wallet-service
+        url: /wallet/v3/api-docs
+      - name: order-service
+        url: /order/v3/api-docs
+      - name: market-data-service
+        url: /market-data/v3/api-docs
+      - name: stream-service
+        url: /stream/v3/api-docs
+      - name: telegram-ai-bot
+        url: /telegram-ai-bot/v3/api-docs

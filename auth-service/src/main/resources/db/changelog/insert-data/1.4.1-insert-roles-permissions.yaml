@@ -1,0 +1,199 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.4.1 insert-roles-permissions
+      author: ShLF
+      changes:
+        # Permission idarəetməsi icazələri
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'permission:add' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'permission:update' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'permission:delete' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'permission:read' }
+              - column: { name: service, value: 'auth-service' }
+
+        # Rol idarəetməsi icazələri
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'role:add' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'role:update' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'role:delete' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'role:remove_permissions' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'role:read' }
+              - column: { name: service, value: 'auth-service' }
+
+        # İstifadəçi idarəetməsi icazələri
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'user:add' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'user:update' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'user:deactivate' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'user:delete' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'user:update_roles' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'user:update_password' }
+              - column: { name: service, value: 'auth-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'user:read' }
+              - column: { name: service, value: 'auth-service' }
+
+        # Wallet servisi icazələri
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'wallet:write' }
+              - column: { name: service, value: 'wallet-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'wallet:read' }
+              - column: { name: service, value: 'wallet-service' }
+
+        # Order servisi icazələri
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'order:write' }
+              - column: { name: service, value: 'order-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'order:read' }
+              - column: { name: service, value: 'order-service' }
+
+        # Market-Data (Stream) servisi icazələri
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'stream:start' }
+              - column: { name: service, value: 'market-data-service' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'stream:stop' }
+              - column: { name: service, value: 'market-data-service' }
+
+        # Telegram bot servisi icazələri
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'telegram:read' }
+              - column: { name: service, value: 'telegram-ai-bot' }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: name, value: 'telegram:delete' }
+              - column: { name: service, value: 'telegram-ai-bot' }
+
+  - changeSet:
+      id: 002-insert-roles-dynamic
+      author: system
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column: { name: name, value: 'SUPER_ADMIN' }
+        - insert:
+            tableName: roles
+            columns:
+              - column: { name: name, value: 'USER_MANAGER' }
+        - insert:
+            tableName: roles
+            columns:
+              - column: { name: name, value: 'ROLE_MANAGER' }
+        - insert:
+            tableName: roles
+            columns:
+              - column: { name: name, value: 'CUSTOMER' }
+
+  - changeSet:
+      id: 003-insert-role-permissions-dynamic
+      author: system
+      changes:
+        - sql:
+            splitStatements: true
+            sql: >
+              INSERT INTO role_permission (role_id, permission_id)
+              SELECT r.id, p.id FROM roles r, permissions p
+              WHERE r.name = 'SUPER_ADMIN' 
+              AND p.name IN (
+                'permission:add', 'permission:update', 'permission:delete', 'permission:read',
+                'role:add', 'role:update', 'role:delete', 'role:remove_permissions', 'role:read',
+                'user:add', 'user:update', 'user:deactivate', 'user:delete', 'user:update_roles', 'user:update_password', 'user:read',
+                'wallet:write', 'wallet:read', 'order:write', 'order:read', 'stream:start', 'stream:stop', 'telegram:read', 'telegram:delete'
+                );
+
+              INSERT INTO role_permission (role_id, permission_id)
+              SELECT r.id, p.id FROM roles r, permissions p
+              WHERE r.name = 'USER_MANAGER' 
+              AND p.name IN (
+                'user:add', 'user:update', 'user:deactivate', 'user:delete', 'user:update_roles', 'user:update_password', 'user:read',
+                'wallet:write', 'wallet:read', 'order:write', 'order:read', 'telegram:read', 'telegram:delete'
+                );
+
+              INSERT INTO role_permission (role_id, permission_id)
+              SELECT r.id, p.id FROM roles r, permissions p
+              WHERE r.name = 'ROLE_MANAGER' 
+              AND p.name IN (
+                'permission:add', 'permission:update', 'permission:delete', 'permission:read',
+                'role:add', 'role:update', 'role:delete', 'role:remove_permissions', 'role:read', 'telegram:read', 'telegram:delete'
+              );
+
+              INSERT INTO role_permission (role_id, permission_id)
+              SELECT r.id, p.id FROM roles r, permissions p
+              WHERE r.name = 'CUSTOMER' 
+              AND p.name IN (
+                'wallet:write', 'wallet:read', 'order:write', 'order:read', 'telegram:read', 'telegram:delete'
+              );

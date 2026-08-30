@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1.5.1-insert-super-admin-user
+      author: ShLF
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column: { name: name, value: 'Shamxal' }
+              - column: { name: surname, value: 'Farzaliyev' }
+              - column: { name: username, value: 'shamxal' }
+              - column: { name: email, value: 'samxalferzeliyev7@gmail.com' }
+              - column: { name: password, value: '$2a$10$TXHqgf1frWaqYogGsPDyPexdVpJ5RLj5V5TsaH7rlObKX4o27BDve' }
+              - column: { name: phone, value: '557050726' }
+              - column: { name: status, value: 'ACTIVE' }
+              - column: { name: created_at, valueComputed: 'CURRENT_TIMESTAMP' }
+              - column: { name: updated_at, valueComputed: 'CURRENT_TIMESTAMP' }
+
+        - sql:
+            splitStatements: true
+            sql: >
+              INSERT INTO user_role (user_id, role_id)
+              SELECT u.id, r.id FROM users u, roles r
+              WHERE u.username = 'shamxal' AND r.name = 'SUPER_ADMIN';
